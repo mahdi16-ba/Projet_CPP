@@ -60,6 +60,15 @@ MainWindow::MainWindow(QWidget *parent)
     setWindowTitle("Gestion de Centre de Formation — Cours & Salles");
     resize(1300, 800);
 
+    // Le texte "placeholder" (indication grisée dans un champ vide) suit la
+    // palette Qt (rôle PlaceholderText), pas la propriété QSS "color" : sur
+    // fond sombre, la couleur grise par défaut est presque illisible. On la
+    // fixe explicitement à un gris clair, lisible mais bien distinct d'une
+    // vraie valeur saisie.
+    QPalette paletteChamps = palette();
+    paletteChamps.setColor(QPalette::PlaceholderText, QColor("#9aa7bd"));
+    setPalette(paletteChamps);
+
     appliquerStyleGlobal();
 
     QTabWidget *onglets = new QTabWidget(this);
@@ -245,10 +254,12 @@ QWidget *MainWindow::creerOngletCours()
     coursDureeSpin = new QSpinBox(groupeForm);
     coursDureeSpin->setRange(1, 500); // contrainte CHECK duree_heures > 0
     coursDureeSpin->setSuffix(" h");
+    coursDureeSpin->setMaximumWidth(150); // évite un champ numérique étiré sur toute la largeur
     coursNiveauCombo = new QComboBox(groupeForm);
     coursNiveauCombo->setEditable(true);
     coursNiveauCombo->setMaxCount(50);
     coursNiveauCombo->lineEdit()->setMaxLength(20); // VARCHAR2(20) en base
+    coursNiveauCombo->lineEdit()->setPlaceholderText("Choisir ou saisir un niveau");
     coursNiveauCombo->addItems({"1ère Année", "2ème Année", "3ème Année"});
     coursNiveauCombo->setCurrentIndex(-1);
     coursSalleCombo = new QComboBox(groupeForm);
@@ -736,10 +747,12 @@ QWidget *MainWindow::creerOngletSalle()
     salleCapaciteSpin = new QSpinBox(groupeForm);
     salleCapaciteSpin->setRange(1, 1000); // contrainte CHECK capacite > 0
     salleCapaciteSpin->setSuffix(" places");
+    salleCapaciteSpin->setMaximumWidth(150); // évite un champ numérique étiré sur toute la largeur
     salleTypeCombo = new QComboBox(groupeForm);
     salleTypeCombo->setEditable(true);
     salleTypeCombo->setMaxCount(50);
     salleTypeCombo->lineEdit()->setMaxLength(30); // VARCHAR2(30) en base
+    salleTypeCombo->lineEdit()->setPlaceholderText("Choisir ou saisir un type");
     salleTypeCombo->addItems({"Informatique", "Amphithéâtre", "Laboratoire", "Salle de cours"});
     salleTypeCombo->setCurrentIndex(-1);
     connect(salleTypeCombo, &QComboBox::currentTextChanged, this, [this](const QString &texte) {
