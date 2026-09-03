@@ -73,6 +73,8 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     rafraichirSalle();
+    rafraichirComboSalles(); // le combo "Salle assignée" du formulaire Cours
+                              // n'est sinon peuplé qu'au changement d'onglet
     rafraichirCours();
 
     statusBar()->showMessage("Prêt");
