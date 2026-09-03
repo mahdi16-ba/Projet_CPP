@@ -340,9 +340,11 @@ QWidget *MainWindow::creerOngletCours()
     // Chaque colonne s'ajuste exactement à son contenu (rien de tronqué),
     // sauf Description (potentiellement longue) qui garde une largeur fixe
     // avec ellipse ; la dernière colonne (Salle) prend le reste de la largeur.
+    // NB : la colonne 2 (Description) n'est fixée en Interactive qu'après
+    // qu'un modèle soit attaché (dans rafraichirCours()) — l'appeler ici,
+    // alors que le tableau n'a encore aucune colonne, fait planter l'appli
+    // au démarrage en build Debug.
     coursTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-    coursTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Interactive);
-    coursTable->setColumnWidth(2, 240);
     coursTable->horizontalHeader()->setStretchLastSection(true);
     connect(coursTable, &QTableView::clicked, this, &MainWindow::onCoursTableClicked);
     layoutGauche->addWidget(coursTable, 1);
@@ -421,6 +423,8 @@ void MainWindow::rafraichirCours()
 
     coursTable->setModel(coursModel);
     coursTable->setColumnHidden(0, true);
+    coursTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Interactive);
+    coursTable->setColumnWidth(2, 240);
 
     coursTotalLabel->setText(QString("Total : %1 cours").arg(coursModel->rowCount()));
     coursStatutLabel->setText(coursModel->rowCount() == 0 ? "Statut : aucun résultat"
