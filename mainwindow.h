@@ -107,6 +107,14 @@ private:
     void rafraichirComboSalles();
     void viderFormulaireCours();
     void viderFormulaireSalle();
+
+    // --- Contrôles de saisie ---
+    // Valide le formulaire concerné ; remplit `erreurs` avec un message par
+    // champ invalide et surligne ces champs en rouge. Retourne false s'il y
+    // a au moins une erreur.
+    bool validerFormulaireCours(QStringList &erreurs);
+    bool validerFormulaireSalle(QStringList &erreurs);
+    void marquerChamp(QWidget *champ, bool enErreur);
 };
 
 #endif // MAINWINDOW_H

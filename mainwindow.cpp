@@ -8,6 +8,7 @@
 #include <QGridLayout>
 #include <QLineEdit>
 #include <QPlainTextEdit>
+#include <QTextCursor>
 #include <QSpinBox>
 #include <QComboBox>
 #include <QCheckBox>
@@ -16,6 +17,7 @@
 #include <QTableView>
 #include <QHeaderView>
 #include <QStatusBar>
+#include <QStyle>
 #include <QMessageBox>
 #include <QSqlError>
 #include <QPainter>
@@ -29,6 +31,28 @@
 #include <QtCharts/QValueAxis>
 #include <QtCharts/QPieSeries>
 #include <QtCharts/QPieSlice>
+
+namespace {
+
+// Libellé de champ de formulaire ; les champs obligatoires portent un
+// astérisque rouge, cohérent avec la légende "* champ obligatoire" du
+// formulaire.
+QLabel *creerLabelChamp(const QString &texte, bool obligatoire, QWidget *parent = nullptr)
+{
+    QString html = obligatoire ? texte + " <span style='color:#f87171;'>*</span>" : texte;
+    QLabel *label = new QLabel(html, parent);
+    label->setObjectName("champLabel");
+    return label;
+}
+
+QLabel *creerLegendeObligatoire(QWidget *parent)
+{
+    QLabel *label = new QLabel("* champ obligatoire", parent);
+    label->setObjectName("aideChamp");
+    return label;
+}
+
+} // namespace
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -141,7 +165,29 @@ void MainWindow::appliquerStyleGlobal()
         }
         QCheckBox { color: #dbeafe; }
         QStatusBar { background: #0f172a; color: #cbd5e1; }
+        QLabel#champLabel {
+            color: #93c5fd;
+            font-weight: 600;
+        }
+        QLabel#aideChamp {
+            color: #64748b;
+            font-size: 11px;
+            font-style: italic;
+            font-weight: 400;
+        }
+        QLineEdit[erreur="true"], QComboBox[erreur="true"],
+        QPlainTextEdit[erreur="true"], QSpinBox[erreur="true"] {
+            border: 1.5px solid #ef4444;
+            background: #241318;
+        }
     )");
+}
+
+void MainWindow::marquerChamp(QWidget *champ, bool enErreur)
+{
+    champ->setProperty("erreur", enErreur);
+    champ->style()->unpolish(champ);
+    champ->style()->polish(champ);
 }
 
 // =======================================================================
@@ -161,29 +207,49 @@ QWidget *MainWindow::creerOngletCours()
     QGridLayout *grilleForm = new QGridLayout(groupeForm);
 
     coursIntituleEdit = new QLineEdit(groupeForm);
-    coursIntituleEdit->setPlaceholderText("Intitulé du cours");
+    coursIntituleEdit->setPlaceholderText("Ex. Programmation C++");
+    coursIntituleEdit->setMaxLength(100); // VARCHAR2(100) en base
+    connect(coursIntituleEdit, &QLineEdit::textChanged, this, [this](const QString &texte) {
+        if (!texte.trimmed().isEmpty())
+            marquerChamp(coursIntituleEdit, false);
+    });
     coursDescriptionEdit = new QPlainTextEdit(groupeForm);
-    coursDescriptionEdit->setPlaceholderText("Description");
+    coursDescriptionEdit->setPlaceholderText("Description (255 caractères max.)");
     coursDescriptionEdit->setMaximumHeight(55);
+    connect(coursDescriptionEdit, &QPlainTextEdit::textChanged, this, [this]() {
+        QString texte = coursDescriptionEdit->toPlainText();
+        if (texte.size() > 255) { // VARCHAR2(255) en base
+            texte.truncate(255);
+            coursDescriptionEdit->blockSignals(true);
+            coursDescriptionEdit->setPlainText(texte);
+            coursDescriptionEdit->blockSignals(false);
+            QTextCursor curseur = coursDescriptionEdit->textCursor();
+            curseur.movePosition(QTextCursor::End);
+            coursDescriptionEdit->setTextCursor(curseur);
+        }
+    });
     coursDureeSpin = new QSpinBox(groupeForm);
-    coursDureeSpin->setRange(1, 500);
+    coursDureeSpin->setRange(1, 500); // contrainte CHECK duree_heures > 0
     coursDureeSpin->setSuffix(" h");
     coursNiveauCombo = new QComboBox(groupeForm);
     coursNiveauCombo->setEditable(true);
+    coursNiveauCombo->setMaxCount(50);
+    coursNiveauCombo->lineEdit()->setMaxLength(20); // VARCHAR2(20) en base
     coursNiveauCombo->addItems({"1ère Année", "2ème Année", "3ème Année"});
     coursNiveauCombo->setCurrentIndex(-1);
     coursSalleCombo = new QComboBox(groupeForm);
 
-    grilleForm->addWidget(new QLabel("Intitulé :"), 0, 0);
+    grilleForm->addWidget(creerLabelChamp("Intitulé :", true, groupeForm), 0, 0);
     grilleForm->addWidget(coursIntituleEdit, 0, 1);
-    grilleForm->addWidget(new QLabel("Description :"), 1, 0);
+    grilleForm->addWidget(creerLabelChamp("Description :", false, groupeForm), 1, 0);
     grilleForm->addWidget(coursDescriptionEdit, 1, 1);
-    grilleForm->addWidget(new QLabel("Durée horaire :"), 2, 0);
+    grilleForm->addWidget(creerLabelChamp("Durée horaire :", true, groupeForm), 2, 0);
     grilleForm->addWidget(coursDureeSpin, 2, 1);
-    grilleForm->addWidget(new QLabel("Niveau :"), 3, 0);
+    grilleForm->addWidget(creerLabelChamp("Niveau :", false, groupeForm), 3, 0);
     grilleForm->addWidget(coursNiveauCombo, 3, 1);
-    grilleForm->addWidget(new QLabel("Salle assignée :"), 4, 0);
+    grilleForm->addWidget(creerLabelChamp("Salle assignée :", false, groupeForm), 4, 0);
     grilleForm->addWidget(coursSalleCombo, 4, 1);
+    grilleForm->addWidget(creerLegendeObligatoire(groupeForm), 5, 0, 1, 2);
 
     QHBoxLayout *boutonsForm = new QHBoxLayout();
     QPushButton *btnAjouter = new QPushButton("Ajouter", groupeForm);
@@ -197,7 +263,7 @@ QWidget *MainWindow::creerOngletCours()
     boutonsForm->addWidget(btnSupprimer);
     boutonsForm->addWidget(btnDupliquer);
     boutonsForm->addWidget(btnAssigner);
-    grilleForm->addLayout(boutonsForm, 5, 0, 1, 2);
+    grilleForm->addLayout(boutonsForm, 6, 0, 1, 2);
 
     connect(btnAjouter, &QPushButton::clicked, this, &MainWindow::onCoursAjouter);
     connect(btnModifier, &QPushButton::clicked, this, &MainWindow::onCoursModifier);
@@ -224,15 +290,15 @@ QWidget *MainWindow::creerOngletCours()
     coursTriCombo->addItems({"Intitulé", "Durée", "Niveau", "Salle"});
     coursTriDescCheck = new QCheckBox("Ordre décroissant", groupeRecherche);
 
-    grilleRecherche->addWidget(new QLabel("Intitulé :"), 0, 0);
+    grilleRecherche->addWidget(creerLabelChamp("Intitulé :", false, groupeRecherche), 0, 0);
     grilleRecherche->addWidget(coursFiltreIntitule, 0, 1);
-    grilleRecherche->addWidget(new QLabel("Niveau :"), 0, 2);
+    grilleRecherche->addWidget(creerLabelChamp("Niveau :", false, groupeRecherche), 0, 2);
     grilleRecherche->addWidget(coursFiltreNiveau, 0, 3);
-    grilleRecherche->addWidget(new QLabel("Durée entre :"), 1, 0);
+    grilleRecherche->addWidget(creerLabelChamp("Durée entre :", false, groupeRecherche), 1, 0);
     grilleRecherche->addWidget(coursFiltreDureeMin, 1, 1);
     grilleRecherche->addWidget(new QLabel("et :"), 1, 2);
     grilleRecherche->addWidget(coursFiltreDureeMax, 1, 3);
-    grilleRecherche->addWidget(new QLabel("Trier par :"), 2, 0);
+    grilleRecherche->addWidget(creerLabelChamp("Trier par :", false, groupeRecherche), 2, 0);
     grilleRecherche->addWidget(coursTriCombo, 2, 1);
     grilleRecherche->addWidget(coursTriDescCheck, 2, 2, 1, 2);
 
@@ -433,19 +499,37 @@ void MainWindow::viderFormulaireCours()
     coursDureeSpin->setValue(1);
     coursNiveauCombo->setCurrentIndex(-1);
     coursSalleCombo->setCurrentIndex(0);
+    marquerChamp(coursIntituleEdit, false);
     coursIntituleEdit->setFocus();
+}
+
+bool MainWindow::validerFormulaireCours(QStringList &erreurs)
+{
+    marquerChamp(coursIntituleEdit, false);
+
+    QString intitule = coursIntituleEdit->text().trimmed();
+    if (intitule.isEmpty()) {
+        erreurs << "L'intitulé du cours est obligatoire.";
+        marquerChamp(coursIntituleEdit, true);
+    }
+
+    // La durée (QSpinBox, borne 1-500h) et le niveau/description (longueurs
+    // limitées par setMaxLength) sont déjà contrôlés au niveau du widget ;
+    // ils ne peuvent pas produire de valeur invalide côté C++.
+
+    return erreurs.isEmpty();
 }
 
 void MainWindow::onCoursAjouter()
 {
-    QString intitule = coursIntituleEdit->text().trimmed();
-    if (intitule.isEmpty()) {
-        QMessageBox::warning(this, "Erreur", "Veuillez saisir l'intitulé du cours.");
+    QStringList erreurs;
+    if (!validerFormulaireCours(erreurs)) {
+        QMessageBox::warning(this, "Saisie incomplète", erreurs.join("\n"));
         return;
     }
 
     Cours cours;
-    cours.setIntitule(intitule);
+    cours.setIntitule(coursIntituleEdit->text().trimmed());
     cours.setDescription(coursDescriptionEdit->toPlainText().trimmed());
     cours.setDureeHeures(coursDureeSpin->value());
     cours.setNiveau(coursNiveauCombo->currentText().trimmed());
@@ -468,15 +552,15 @@ void MainWindow::onCoursModifier()
         return;
     }
 
-    QString intitule = coursIntituleEdit->text().trimmed();
-    if (intitule.isEmpty()) {
-        QMessageBox::warning(this, "Erreur", "Veuillez saisir l'intitulé du cours.");
+    QStringList erreurs;
+    if (!validerFormulaireCours(erreurs)) {
+        QMessageBox::warning(this, "Saisie incomplète", erreurs.join("\n"));
         return;
     }
 
     Cours cours;
     cours.setId(coursIdSelectionne);
-    cours.setIntitule(intitule);
+    cours.setIntitule(coursIntituleEdit->text().trimmed());
     cours.setDescription(coursDescriptionEdit->toPlainText().trimmed());
     cours.setDureeHeures(coursDureeSpin->value());
     cours.setNiveau(coursNiveauCombo->currentText().trimmed());
@@ -619,24 +703,36 @@ QWidget *MainWindow::creerOngletSalle()
     QGridLayout *grilleForm = new QGridLayout(groupeForm);
 
     salleNomEdit = new QLineEdit(groupeForm);
-    salleNomEdit->setPlaceholderText("Nom de la salle");
+    salleNomEdit->setPlaceholderText("Ex. Salle Info 1");
+    salleNomEdit->setMaxLength(50); // VARCHAR2(50) en base
+    connect(salleNomEdit, &QLineEdit::textChanged, this, [this](const QString &texte) {
+        if (!texte.trimmed().isEmpty())
+            marquerChamp(salleNomEdit, false);
+    });
     salleCapaciteSpin = new QSpinBox(groupeForm);
-    salleCapaciteSpin->setRange(1, 1000);
+    salleCapaciteSpin->setRange(1, 1000); // contrainte CHECK capacite > 0
     salleCapaciteSpin->setSuffix(" places");
     salleTypeCombo = new QComboBox(groupeForm);
     salleTypeCombo->setEditable(true);
+    salleTypeCombo->setMaxCount(50);
+    salleTypeCombo->lineEdit()->setMaxLength(30); // VARCHAR2(30) en base
     salleTypeCombo->addItems({"Informatique", "Amphithéâtre", "Laboratoire", "Salle de cours"});
     salleTypeCombo->setCurrentIndex(-1);
+    connect(salleTypeCombo, &QComboBox::currentTextChanged, this, [this](const QString &texte) {
+        if (!texte.trimmed().isEmpty())
+            marquerChamp(salleTypeCombo, false);
+    });
     salleDisponibleCheck = new QCheckBox("Disponible", groupeForm);
     salleDisponibleCheck->setChecked(true);
 
-    grilleForm->addWidget(new QLabel("Nom :"), 0, 0);
+    grilleForm->addWidget(creerLabelChamp("Nom :", true, groupeForm), 0, 0);
     grilleForm->addWidget(salleNomEdit, 0, 1);
-    grilleForm->addWidget(new QLabel("Capacité :"), 1, 0);
+    grilleForm->addWidget(creerLabelChamp("Capacité :", true, groupeForm), 1, 0);
     grilleForm->addWidget(salleCapaciteSpin, 1, 1);
-    grilleForm->addWidget(new QLabel("Type :"), 2, 0);
+    grilleForm->addWidget(creerLabelChamp("Type :", true, groupeForm), 2, 0);
     grilleForm->addWidget(salleTypeCombo, 2, 1);
     grilleForm->addWidget(salleDisponibleCheck, 3, 1);
+    grilleForm->addWidget(creerLegendeObligatoire(groupeForm), 4, 0, 1, 2);
 
     QHBoxLayout *boutonsForm = new QHBoxLayout();
     QPushButton *btnAjouter = new QPushButton("Ajouter", groupeForm);
@@ -648,7 +744,7 @@ QWidget *MainWindow::creerOngletSalle()
     boutonsForm->addWidget(btnModifier);
     boutonsForm->addWidget(btnSupprimer);
     boutonsForm->addWidget(btnBasculer);
-    grilleForm->addLayout(boutonsForm, 4, 0, 1, 2);
+    grilleForm->addLayout(boutonsForm, 5, 0, 1, 2);
 
     connect(btnAjouter, &QPushButton::clicked, this, &MainWindow::onSalleAjouter);
     connect(btnModifier, &QPushButton::clicked, this, &MainWindow::onSalleModifier);
@@ -677,17 +773,17 @@ QWidget *MainWindow::creerOngletSalle()
     salleTriCombo->addItems({"Nom", "Capacité", "Type", "Disponibilité"});
     salleTriDescCheck = new QCheckBox("Ordre décroissant", groupeRecherche);
 
-    grilleRecherche->addWidget(new QLabel("Nom :"), 0, 0);
+    grilleRecherche->addWidget(creerLabelChamp("Nom :", false, groupeRecherche), 0, 0);
     grilleRecherche->addWidget(salleFiltreNom, 0, 1);
-    grilleRecherche->addWidget(new QLabel("Type :"), 0, 2);
+    grilleRecherche->addWidget(creerLabelChamp("Type :", false, groupeRecherche), 0, 2);
     grilleRecherche->addWidget(salleFiltreType, 0, 3);
-    grilleRecherche->addWidget(new QLabel("Capacité entre :"), 1, 0);
+    grilleRecherche->addWidget(creerLabelChamp("Capacité entre :", false, groupeRecherche), 1, 0);
     grilleRecherche->addWidget(salleFiltreCapMin, 1, 1);
     grilleRecherche->addWidget(new QLabel("et :"), 1, 2);
     grilleRecherche->addWidget(salleFiltreCapMax, 1, 3);
-    grilleRecherche->addWidget(new QLabel("Disponibilité :"), 2, 0);
+    grilleRecherche->addWidget(creerLabelChamp("Disponibilité :", false, groupeRecherche), 2, 0);
     grilleRecherche->addWidget(salleFiltreDispo, 2, 1);
-    grilleRecherche->addWidget(new QLabel("Trier par :"), 2, 2);
+    grilleRecherche->addWidget(creerLabelChamp("Trier par :", false, groupeRecherche), 2, 2);
     grilleRecherche->addWidget(salleTriCombo, 2, 3);
     grilleRecherche->addWidget(salleTriDescCheck, 3, 0, 1, 2);
 
@@ -893,26 +989,43 @@ void MainWindow::viderFormulaireSalle()
     salleCapaciteSpin->setValue(1);
     salleTypeCombo->setCurrentIndex(-1);
     salleDisponibleCheck->setChecked(true);
+    marquerChamp(salleNomEdit, false);
+    marquerChamp(salleTypeCombo, false);
     salleNomEdit->setFocus();
+}
+
+bool MainWindow::validerFormulaireSalle(QStringList &erreurs)
+{
+    marquerChamp(salleNomEdit, false);
+    marquerChamp(salleTypeCombo, false);
+
+    if (salleNomEdit->text().trimmed().isEmpty()) {
+        erreurs << "Le nom de la salle est obligatoire.";
+        marquerChamp(salleNomEdit, true);
+    }
+    if (salleTypeCombo->currentText().trimmed().isEmpty()) {
+        erreurs << "Le type de la salle est obligatoire.";
+        marquerChamp(salleTypeCombo, true);
+    }
+
+    // La capacité (QSpinBox, borne 1-1000) est déjà contrôlée au niveau du
+    // widget ; elle ne peut pas produire de valeur invalide côté C++.
+
+    return erreurs.isEmpty();
 }
 
 void MainWindow::onSalleAjouter()
 {
-    QString nom = salleNomEdit->text().trimmed();
-    if (nom.isEmpty()) {
-        QMessageBox::warning(this, "Erreur", "Veuillez saisir le nom de la salle.");
-        return;
-    }
-    QString type = salleTypeCombo->currentText().trimmed();
-    if (type.isEmpty()) {
-        QMessageBox::warning(this, "Erreur", "Veuillez saisir le type de la salle.");
+    QStringList erreurs;
+    if (!validerFormulaireSalle(erreurs)) {
+        QMessageBox::warning(this, "Saisie incomplète", erreurs.join("\n"));
         return;
     }
 
     Salle salle;
-    salle.setNom(nom);
+    salle.setNom(salleNomEdit->text().trimmed());
     salle.setCapacite(salleCapaciteSpin->value());
-    salle.setTypeSalle(type);
+    salle.setTypeSalle(salleTypeCombo->currentText().trimmed());
     salle.setDisponibilite(salleDisponibleCheck->isChecked());
 
     if (salle.ajouter()) {
@@ -932,18 +1045,18 @@ void MainWindow::onSalleModifier()
         QMessageBox::warning(this, "Erreur", "Veuillez sélectionner une salle dans le tableau.");
         return;
     }
-    QString nom = salleNomEdit->text().trimmed();
-    QString type = salleTypeCombo->currentText().trimmed();
-    if (nom.isEmpty() || type.isEmpty()) {
-        QMessageBox::warning(this, "Erreur", "Le nom et le type sont obligatoires.");
+
+    QStringList erreurs;
+    if (!validerFormulaireSalle(erreurs)) {
+        QMessageBox::warning(this, "Saisie incomplète", erreurs.join("\n"));
         return;
     }
 
     Salle salle;
     salle.setId(salleIdSelectionne);
-    salle.setNom(nom);
+    salle.setNom(salleNomEdit->text().trimmed());
     salle.setCapacite(salleCapaciteSpin->value());
-    salle.setTypeSalle(type);
+    salle.setTypeSalle(salleTypeCombo->currentText().trimmed());
     salle.setDisponibilite(salleDisponibleCheck->isChecked());
 
     if (salle.modifier()) {
