@@ -149,30 +149,30 @@ void MainWindow::appliquerStyleGlobal()
                                         stop:0 #f87171, stop:1 #ef4444);
         }
         QTableView {
-            background: #0b1220;
+            background: #f8fafc;
             border: 1px solid #334155;
             border-radius: 10px;
-            gridline-color: #3b475c;
+            gridline-color: #cbd5e1;
             selection-background-color: #2563eb;
             selection-color: white;
-            alternate-background-color: #1b2740;
-            color: #f8fafc;
+            alternate-background-color: #e2e8f0;
+            color: #0f172a;
             font-size: 13px;
         }
         QTableView::item {
             padding: 6px 8px;
-            border-bottom: 1px solid #263349;
+            border-bottom: 1px solid #cbd5e1;
         }
         QTableView::item:selected {
             background: #2563eb;
             color: white;
         }
         QHeaderView::section {
-            background: #263a63;
+            background: #1e293b;
             color: #ffffff;
             padding: 10px 8px;
             border: none;
-            border-right: 1px solid #1c2c4a;
+            border-right: 1px solid #0f172a;
             border-bottom: 2px solid #3b82f6;
             font-weight: 700;
             font-size: 12.5px;
