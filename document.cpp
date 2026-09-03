@@ -6,6 +6,7 @@
 #include <QTextDocument>
 #include <QPrinter>
 #include <QPageLayout>
+#include <QPageSize>
 #include <QMarginsF>
 #include <QDateTime>
 
@@ -58,11 +59,16 @@ bool Document::genererListePdf(QWidget *parent, const QString &titre,
     QPrinter printer(QPrinter::HighResolution);
     printer.setOutputFormat(QPrinter::PdfFormat);
     printer.setOutputFileName(cheminFichier);
+    printer.setPageSize(QPageSize(QPageSize::A4));
     printer.setPageMargins(QMarginsF(15, 15, 15, 15), QPageLayout::Millimeter);
 
+    // QTextDocument::print() met lui-même en page le document en fonction de
+    // la taille réelle de printer (et gère la pagination sur plusieurs pages
+    // si besoin) : ne pas fixer nous-mêmes setPageSize() en pixels d'imprimante,
+    // sous peine de désynchroniser l'échelle du texte par rapport à la page
+    // (le contenu se retrouve alors minuscule dans un coin d'une page géante).
     QTextDocument document;
     document.setHtml(html);
-    document.setPageSize(printer.pageRect(QPrinter::DevicePixel).size());
     document.print(&printer);
 
     QMessageBox::information(parent, "Document généré",
