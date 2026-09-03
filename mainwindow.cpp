@@ -147,21 +147,33 @@ void MainWindow::appliquerStyleGlobal()
                                         stop:0 #f87171, stop:1 #ef4444);
         }
         QTableView {
-            background: #111827;
+            background: #0b1220;
             border: 1px solid #334155;
             border-radius: 10px;
-            gridline-color: #1e293b;
+            gridline-color: #3b475c;
             selection-background-color: #2563eb;
             selection-color: white;
-            alternate-background-color: #0f172a;
+            alternate-background-color: #1b2740;
             color: #f8fafc;
+            font-size: 13px;
+        }
+        QTableView::item {
+            padding: 6px 8px;
+            border-bottom: 1px solid #263349;
+        }
+        QTableView::item:selected {
+            background: #2563eb;
+            color: white;
         }
         QHeaderView::section {
-            background: #1e293b;
-            color: #e2e8f0;
-            padding: 8px;
-            border: 1px solid #334155;
+            background: #263a63;
+            color: #ffffff;
+            padding: 10px 8px;
+            border: none;
+            border-right: 1px solid #1c2c4a;
+            border-bottom: 2px solid #3b82f6;
             font-weight: 700;
+            font-size: 12.5px;
         }
         QCheckBox { color: #dbeafe; }
         QStatusBar { background: #0f172a; color: #cbd5e1; }
@@ -321,6 +333,7 @@ QWidget *MainWindow::creerOngletCours()
     coursTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     coursTable->setAlternatingRowColors(true);
     coursTable->verticalHeader()->setVisible(false);
+    coursTable->verticalHeader()->setDefaultSectionSize(34);
     coursTable->horizontalHeader()->setStretchLastSection(true);
     connect(coursTable, &QTableView::clicked, this, &MainWindow::onCoursTableClicked);
     layoutGauche->addWidget(coursTable, 1);
@@ -835,6 +848,7 @@ QWidget *MainWindow::creerOngletSalle()
     salleTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     salleTable->setAlternatingRowColors(true);
     salleTable->verticalHeader()->setVisible(false);
+    salleTable->verticalHeader()->setDefaultSectionSize(34);
     salleTable->horizontalHeader()->setStretchLastSection(true);
     connect(salleTable, &QTableView::clicked, this, &MainWindow::onSalleTableClicked);
     layoutGauche->addWidget(salleTable, 1);
