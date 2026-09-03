@@ -335,7 +335,14 @@ QWidget *MainWindow::creerOngletCours()
     coursTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     coursTable->setAlternatingRowColors(true);
     coursTable->verticalHeader()->setVisible(false);
-    coursTable->verticalHeader()->setDefaultSectionSize(34);
+    coursTable->verticalHeader()->setDefaultSectionSize(36);
+    coursTable->setMinimumHeight(260);
+    // Chaque colonne s'ajuste exactement à son contenu (rien de tronqué),
+    // sauf Description (potentiellement longue) qui garde une largeur fixe
+    // avec ellipse ; la dernière colonne (Salle) prend le reste de la largeur.
+    coursTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    coursTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Interactive);
+    coursTable->setColumnWidth(2, 240);
     coursTable->horizontalHeader()->setStretchLastSection(true);
     connect(coursTable, &QTableView::clicked, this, &MainWindow::onCoursTableClicked);
     layoutGauche->addWidget(coursTable, 1);
@@ -414,8 +421,6 @@ void MainWindow::rafraichirCours()
 
     coursTable->setModel(coursModel);
     coursTable->setColumnHidden(0, true);
-    coursTable->setColumnWidth(1, 200);
-    coursTable->setColumnWidth(2, 220);
 
     coursTotalLabel->setText(QString("Total : %1 cours").arg(coursModel->rowCount()));
     coursStatutLabel->setText(coursModel->rowCount() == 0 ? "Statut : aucun résultat"
@@ -850,7 +855,11 @@ QWidget *MainWindow::creerOngletSalle()
     salleTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     salleTable->setAlternatingRowColors(true);
     salleTable->verticalHeader()->setVisible(false);
-    salleTable->verticalHeader()->setDefaultSectionSize(34);
+    salleTable->verticalHeader()->setDefaultSectionSize(36);
+    salleTable->setMinimumHeight(260);
+    // Chaque colonne s'ajuste exactement à son contenu (rien de tronqué),
+    // la dernière colonne (Statut) prend le reste de la largeur disponible.
+    salleTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     salleTable->horizontalHeader()->setStretchLastSection(true);
     connect(salleTable, &QTableView::clicked, this, &MainWindow::onSalleTableClicked);
     layoutGauche->addWidget(salleTable, 1);
