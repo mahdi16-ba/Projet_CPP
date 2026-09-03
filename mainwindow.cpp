@@ -16,6 +16,7 @@
 #include <QLabel>
 #include <QTableView>
 #include <QHeaderView>
+#include <QScrollArea>
 #include <QStatusBar>
 #include <QStyle>
 #include <QMessageBox>
@@ -129,10 +130,9 @@ void MainWindow::appliquerStyleGlobal()
             background: #0b1220;
             border: 1px solid #475569;
             border-radius: 8px;
-            padding: 9px 12px;
+            padding: 6px 10px;
             color: #ffffff;
             font-size: 15px;
-            min-height: 22px;
         }
         QComboBox QAbstractItemView {
             background: #111827;
@@ -213,6 +213,22 @@ void MainWindow::appliquerStyleGlobal()
             border: 1.5px solid #ef4444;
             background: #241318;
         }
+        QScrollArea { background: transparent; border: none; }
+        QScrollArea > QWidget > QWidget { background: transparent; }
+        QScrollBar:vertical {
+            background: #0f172a;
+            width: 12px;
+            margin: 0;
+            border-radius: 6px;
+        }
+        QScrollBar::handle:vertical {
+            background: #475569;
+            border-radius: 6px;
+            min-height: 28px;
+        }
+        QScrollBar::handle:vertical:hover { background: #64748b; }
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: none; }
     )");
 }
 
@@ -381,7 +397,13 @@ QWidget *MainWindow::creerOngletCours()
     ligneBas->addWidget(btnPdf);
     layoutGauche->addLayout(ligneBas);
 
-    layoutPrincipal->addWidget(colonneGauche, 3);
+    // La colonne gauche défile plutôt que de comprimer/chevaucher ses champs
+    // si la fenêtre n'est pas assez haute pour tout afficher d'un coup.
+    QScrollArea *defilementGauche = new QScrollArea(onglet);
+    defilementGauche->setWidgetResizable(true);
+    defilementGauche->setFrameShape(QFrame::NoFrame);
+    defilementGauche->setWidget(colonneGauche);
+    layoutPrincipal->addWidget(defilementGauche, 3);
 
     // ---- Colonne droite : statistiques mises à jour en direct ----
     QGroupBox *groupeStats = new QGroupBox("Statistiques", onglet);
@@ -902,7 +924,13 @@ QWidget *MainWindow::creerOngletSalle()
     ligneBas->addWidget(btnPdf);
     layoutGauche->addLayout(ligneBas);
 
-    layoutPrincipal->addWidget(colonneGauche, 3);
+    // La colonne gauche défile plutôt que de comprimer/chevaucher ses champs
+    // si la fenêtre n'est pas assez haute pour tout afficher d'un coup.
+    QScrollArea *defilementGauche = new QScrollArea(onglet);
+    defilementGauche->setWidgetResizable(true);
+    defilementGauche->setFrameShape(QFrame::NoFrame);
+    defilementGauche->setWidget(colonneGauche);
+    layoutPrincipal->addWidget(defilementGauche, 3);
 
     QGroupBox *groupeStats = new QGroupBox("Statistiques", onglet);
     QVBoxLayout *layoutStats = new QVBoxLayout(groupeStats);
