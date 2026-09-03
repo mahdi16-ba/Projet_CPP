@@ -66,7 +66,7 @@ MainWindow::MainWindow(QWidget *parent)
     // fixe explicitement à un gris clair, lisible mais bien distinct d'une
     // vraie valeur saisie.
     QPalette paletteChamps = palette();
-    paletteChamps.setColor(QPalette::PlaceholderText, QColor("#9aa7bd"));
+    paletteChamps.setColor(QPalette::PlaceholderText, QColor("#c3cee2"));
     setPalette(paletteChamps);
 
     appliquerStyleGlobal();
@@ -124,13 +124,23 @@ void MainWindow::appliquerStyleGlobal()
             padding: 0 8px;
             color: #93c5fd;
         }
-        QLabel { color: #dbeafe; font-size: 12px; font-weight: 400; }
+        QLabel { color: #dbeafe; font-size: 13px; font-weight: 400; }
         QLineEdit, QSpinBox, QComboBox, QPlainTextEdit {
             background: #0b1220;
             border: 1px solid #475569;
             border-radius: 8px;
-            padding: 6px 8px;
+            padding: 9px 12px;
+            color: #ffffff;
+            font-size: 15px;
+            min-height: 22px;
+        }
+        QComboBox QAbstractItemView {
+            background: #111827;
             color: #f8fafc;
+            selection-background-color: #2563eb;
+            selection-color: white;
+            font-size: 15px;
+            outline: none;
         }
         QLineEdit:focus, QSpinBox:focus, QComboBox:focus, QPlainTextEdit:focus {
             border: 1px solid #60a5fa;
