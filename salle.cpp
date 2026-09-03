@@ -121,22 +121,31 @@ QSqlQueryModel *Salle::rechercherTrier(const QString &nom, const QString &typeSa
 
     QString tri = colonnes.value(colonneTri, "id_salle");
 
+    // NB : en Oracle, une chaîne vide liée en paramètre équivaut à NULL, donc
+    // "NULL = ''" ne vaut jamais vrai. On ne construit la condition type que
+    // lorsqu'un filtre est réellement demandé (le filtre disponibilité, lui,
+    // compare des entiers : pas de piège NULL/'' pour -1).
     QString requete = "SELECT id_salle, nom, capacite, type_salle, "
                        "CASE disponibilite WHEN 1 THEN 'Disponible' ELSE 'Occupée' END "
                        "FROM salle "
                        "WHERE LOWER(nom) LIKE :nom "
-                       "AND (:type = '' OR type_salle = :type) "
                        "AND NVL(capacite, 0) BETWEEN :capMin AND :capMax "
-                       "AND (:dispo = -1 OR disponibilite = :dispo) "
-                       "ORDER BY " + tri + (ascendant ? " ASC" : " DESC");
+                       "AND (:dispo = -1 OR disponibilite = :dispo) ";
+
+    QString typeTrimme = typeSalle.trimmed();
+    if (!typeTrimme.isEmpty())
+        requete += "AND type_salle = :type ";
+
+    requete += "ORDER BY " + tri + (ascendant ? " ASC" : " DESC");
 
     QSqlQuery query;
     query.prepare(requete);
     query.bindValue(":nom", "%" + nom.trimmed().toLower() + "%");
-    query.bindValue(":type", typeSalle);
     query.bindValue(":capMin", capaciteMin);
     query.bindValue(":capMax", capaciteMax);
     query.bindValue(":dispo", disponibilite);
+    if (!typeTrimme.isEmpty())
+        query.bindValue(":type", typeTrimme);
 
     QSqlQueryModel *model = new QSqlQueryModel();
     if (!query.exec()) {

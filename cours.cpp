@@ -131,20 +131,29 @@ QSqlQueryModel *Cours::rechercherTrier(const QString &intitule, const QString &n
 
     QString tri = colonnes.value(colonneTri, "c.id_cours");
 
+    // NB : en Oracle, une chaîne vide liée en paramètre équivaut à NULL, donc
+    // "NULL = ''" ne vaut jamais vrai. On ne construit la condition niveau que
+    // lorsqu'un filtre est réellement demandé, plutôt que de la neutraliser
+    // par une comparaison à la chaîne vide.
     QString requete = "SELECT c.id_cours, c.intitule, c.description, c.duree_heures, "
                        "c.niveau, NVL(s.nom, '(non assignée)') "
                        "FROM cours c LEFT JOIN salle s ON c.id_salle = s.id_salle "
                        "WHERE LOWER(c.intitule) LIKE :intitule "
-                       "AND (:niveau = '' OR c.niveau = :niveau) "
-                       "AND NVL(c.duree_heures, 0) BETWEEN :dureeMin AND :dureeMax "
-                       "ORDER BY " + tri + (ascendant ? " ASC" : " DESC");
+                       "AND NVL(c.duree_heures, 0) BETWEEN :dureeMin AND :dureeMax ";
+
+    QString niveauTrimme = niveau.trimmed();
+    if (!niveauTrimme.isEmpty())
+        requete += "AND c.niveau = :niveau ";
+
+    requete += "ORDER BY " + tri + (ascendant ? " ASC" : " DESC");
 
     QSqlQuery query;
     query.prepare(requete);
     query.bindValue(":intitule", "%" + intitule.trimmed().toLower() + "%");
-    query.bindValue(":niveau", niveau);
     query.bindValue(":dureeMin", dureeMin);
     query.bindValue(":dureeMax", dureeMax);
+    if (!niveauTrimme.isEmpty())
+        query.bindValue(":niveau", niveauTrimme);
 
     QSqlQueryModel *model = new QSqlQueryModel();
     if (!query.exec()) {
