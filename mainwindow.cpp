@@ -324,44 +324,69 @@ QWidget *MainWindow::creerOngletCours()
 
     layoutGauche->addWidget(groupeForm);
 
-    // Recherche / tri multicritères
-    QGroupBox *groupeRecherche = new QGroupBox("Recherche et tri multicritères", colonneGauche);
-    QGridLayout *grilleRecherche = new QGridLayout(groupeRecherche);
+    // Recherche / tri multicritères : seule la recherche + le tri restent
+    // visibles en permanence ; les critères additionnels (niveau, durée)
+    // se replient dans un panneau "Filtres avancés" pour rester simple.
+    QGroupBox *groupeRecherche = new QGroupBox("Recherche et tri", colonneGauche);
+    QVBoxLayout *layoutRecherche = new QVBoxLayout(groupeRecherche);
 
+    QHBoxLayout *ligneRapideCours = new QHBoxLayout();
     coursFiltreIntitule = new QLineEdit(groupeRecherche);
-    coursFiltreIntitule->setPlaceholderText("Contient...");
-    coursFiltreNiveau = new QComboBox(groupeRecherche);
-    coursFiltreNiveau->addItem("Tous les niveaux", "");
-    coursFiltreDureeMin = new QSpinBox(groupeRecherche);
-    coursFiltreDureeMin->setRange(0, 500);
-    coursFiltreDureeMax = new QSpinBox(groupeRecherche);
-    coursFiltreDureeMax->setRange(0, 500);
-    coursFiltreDureeMax->setValue(500);
+    coursFiltreIntitule->setPlaceholderText("Rechercher un cours...");
     coursTriCombo = new QComboBox(groupeRecherche);
     coursTriCombo->addItems({"Intitulé", "Durée", "Niveau", "Salle"});
-    coursTriDescCheck = new QCheckBox("Ordre décroissant", groupeRecherche);
+    coursTriDescCheck = new QPushButton("↓", groupeRecherche);
+    coursTriDescCheck->setCheckable(true);
+    coursTriDescCheck->setFixedWidth(40);
+    coursTriDescCheck->setToolTip("Inverser l'ordre de tri");
+    QPushButton *btnFiltresAvancesCours = new QPushButton("Filtres avancés ▾", groupeRecherche);
+    btnFiltresAvancesCours->setCheckable(true);
 
-    grilleRecherche->addWidget(creerLabelChamp("Intitulé :", false, groupeRecherche), 0, 0);
-    grilleRecherche->addWidget(coursFiltreIntitule, 0, 1);
-    grilleRecherche->addWidget(creerLabelChamp("Niveau :", false, groupeRecherche), 0, 2);
-    grilleRecherche->addWidget(coursFiltreNiveau, 0, 3);
-    grilleRecherche->addWidget(creerLabelChamp("Durée entre :", false, groupeRecherche), 1, 0);
-    grilleRecherche->addWidget(coursFiltreDureeMin, 1, 1);
-    grilleRecherche->addWidget(new QLabel("et :"), 1, 2);
-    grilleRecherche->addWidget(coursFiltreDureeMax, 1, 3);
-    grilleRecherche->addWidget(creerLabelChamp("Trier par :", false, groupeRecherche), 2, 0);
-    grilleRecherche->addWidget(coursTriCombo, 2, 1);
-    grilleRecherche->addWidget(coursTriDescCheck, 2, 2, 1, 2);
+    ligneRapideCours->addWidget(coursFiltreIntitule, 1);
+    ligneRapideCours->addWidget(new QLabel("Trier par :"));
+    ligneRapideCours->addWidget(coursTriCombo);
+    ligneRapideCours->addWidget(coursTriDescCheck);
+    ligneRapideCours->addWidget(btnFiltresAvancesCours);
+    layoutRecherche->addLayout(ligneRapideCours);
 
-    QPushButton *btnEffacerFiltres = new QPushButton("Réinitialiser les filtres", groupeRecherche);
-    grilleRecherche->addWidget(btnEffacerFiltres, 3, 0, 1, 4);
+    QWidget *panneauAvanceCours = new QWidget(groupeRecherche);
+    QGridLayout *grilleAvanceCours = new QGridLayout(panneauAvanceCours);
+    grilleAvanceCours->setContentsMargins(0, 10, 0, 0);
+
+    coursFiltreNiveau = new QComboBox(panneauAvanceCours);
+    coursFiltreNiveau->addItem("Tous les niveaux", "");
+    coursFiltreDureeMin = new QSpinBox(panneauAvanceCours);
+    coursFiltreDureeMin->setRange(0, 500);
+    coursFiltreDureeMax = new QSpinBox(panneauAvanceCours);
+    coursFiltreDureeMax->setRange(0, 500);
+    coursFiltreDureeMax->setValue(500);
+
+    grilleAvanceCours->addWidget(creerLabelChamp("Niveau :", false, panneauAvanceCours), 0, 0);
+    grilleAvanceCours->addWidget(coursFiltreNiveau, 0, 1);
+    grilleAvanceCours->addWidget(creerLabelChamp("Durée entre :", false, panneauAvanceCours), 0, 2);
+    grilleAvanceCours->addWidget(coursFiltreDureeMin, 0, 3);
+    grilleAvanceCours->addWidget(new QLabel("et"), 0, 4);
+    grilleAvanceCours->addWidget(coursFiltreDureeMax, 0, 5);
+
+    QPushButton *btnEffacerFiltres = new QPushButton("Réinitialiser les filtres", panneauAvanceCours);
+    grilleAvanceCours->addWidget(btnEffacerFiltres, 1, 0, 1, 6);
+
+    panneauAvanceCours->setVisible(false);
+    layoutRecherche->addWidget(panneauAvanceCours);
 
     connect(coursFiltreIntitule, &QLineEdit::textChanged, this, &MainWindow::onCoursFiltrerChange);
     connect(coursFiltreNiveau, &QComboBox::currentTextChanged, this, &MainWindow::onCoursFiltrerChange);
     connect(coursFiltreDureeMin, QOverload<int>::of(&QSpinBox::valueChanged), this, &MainWindow::onCoursFiltrerChange);
     connect(coursFiltreDureeMax, QOverload<int>::of(&QSpinBox::valueChanged), this, &MainWindow::onCoursFiltrerChange);
     connect(coursTriCombo, &QComboBox::currentTextChanged, this, &MainWindow::onCoursFiltrerChange);
-    connect(coursTriDescCheck, &QCheckBox::toggled, this, &MainWindow::onCoursFiltrerChange);
+    connect(coursTriDescCheck, &QPushButton::toggled, this, [this](bool coche) {
+        coursTriDescCheck->setText(coche ? "↑" : "↓");
+        onCoursFiltrerChange();
+    });
+    connect(btnFiltresAvancesCours, &QPushButton::toggled, this, [btnFiltresAvancesCours, panneauAvanceCours](bool coche) {
+        panneauAvanceCours->setVisible(coche);
+        btnFiltresAvancesCours->setText(coche ? "▴ Masquer les filtres avancés" : "Filtres avancés ▾");
+    });
     connect(btnEffacerFiltres, &QPushButton::clicked, this, &MainWindow::onCoursEffacerFiltres);
 
     layoutGauche->addWidget(groupeRecherche);
@@ -822,42 +847,61 @@ QWidget *MainWindow::creerOngletSalle()
 
     layoutGauche->addWidget(groupeForm);
 
-    QGroupBox *groupeRecherche = new QGroupBox("Recherche et tri multicritères", colonneGauche);
-    QGridLayout *grilleRecherche = new QGridLayout(groupeRecherche);
+    // Recherche / tri multicritères : seule la recherche + le tri restent
+    // visibles en permanence ; les critères additionnels (type, capacité,
+    // disponibilité) se replient dans un panneau "Filtres avancés".
+    QGroupBox *groupeRecherche = new QGroupBox("Recherche et tri", colonneGauche);
+    QVBoxLayout *layoutRecherche = new QVBoxLayout(groupeRecherche);
 
+    QHBoxLayout *ligneRapideSalle = new QHBoxLayout();
     salleFiltreNom = new QLineEdit(groupeRecherche);
-    salleFiltreNom->setPlaceholderText("Contient...");
-    salleFiltreType = new QComboBox(groupeRecherche);
+    salleFiltreNom->setPlaceholderText("Rechercher une salle...");
+    salleTriCombo = new QComboBox(groupeRecherche);
+    salleTriCombo->addItems({"Nom", "Capacité", "Type", "Disponibilité"});
+    salleTriDescCheck = new QPushButton("↓", groupeRecherche);
+    salleTriDescCheck->setCheckable(true);
+    salleTriDescCheck->setFixedWidth(40);
+    salleTriDescCheck->setToolTip("Inverser l'ordre de tri");
+    QPushButton *btnFiltresAvancesSalle = new QPushButton("Filtres avancés ▾", groupeRecherche);
+    btnFiltresAvancesSalle->setCheckable(true);
+
+    ligneRapideSalle->addWidget(salleFiltreNom, 1);
+    ligneRapideSalle->addWidget(new QLabel("Trier par :"));
+    ligneRapideSalle->addWidget(salleTriCombo);
+    ligneRapideSalle->addWidget(salleTriDescCheck);
+    ligneRapideSalle->addWidget(btnFiltresAvancesSalle);
+    layoutRecherche->addLayout(ligneRapideSalle);
+
+    QWidget *panneauAvanceSalle = new QWidget(groupeRecherche);
+    QGridLayout *grilleAvanceSalle = new QGridLayout(panneauAvanceSalle);
+    grilleAvanceSalle->setContentsMargins(0, 10, 0, 0);
+
+    salleFiltreType = new QComboBox(panneauAvanceSalle);
     salleFiltreType->addItem("Tous les types", "");
-    salleFiltreCapMin = new QSpinBox(groupeRecherche);
+    salleFiltreCapMin = new QSpinBox(panneauAvanceSalle);
     salleFiltreCapMin->setRange(0, 1000);
-    salleFiltreCapMax = new QSpinBox(groupeRecherche);
+    salleFiltreCapMax = new QSpinBox(panneauAvanceSalle);
     salleFiltreCapMax->setRange(0, 1000);
     salleFiltreCapMax->setValue(1000);
-    salleFiltreDispo = new QComboBox(groupeRecherche);
+    salleFiltreDispo = new QComboBox(panneauAvanceSalle);
     salleFiltreDispo->addItem("Toutes", -1);
     salleFiltreDispo->addItem("Disponible", 1);
     salleFiltreDispo->addItem("Occupée", 0);
-    salleTriCombo = new QComboBox(groupeRecherche);
-    salleTriCombo->addItems({"Nom", "Capacité", "Type", "Disponibilité"});
-    salleTriDescCheck = new QCheckBox("Ordre décroissant", groupeRecherche);
 
-    grilleRecherche->addWidget(creerLabelChamp("Nom :", false, groupeRecherche), 0, 0);
-    grilleRecherche->addWidget(salleFiltreNom, 0, 1);
-    grilleRecherche->addWidget(creerLabelChamp("Type :", false, groupeRecherche), 0, 2);
-    grilleRecherche->addWidget(salleFiltreType, 0, 3);
-    grilleRecherche->addWidget(creerLabelChamp("Capacité entre :", false, groupeRecherche), 1, 0);
-    grilleRecherche->addWidget(salleFiltreCapMin, 1, 1);
-    grilleRecherche->addWidget(new QLabel("et :"), 1, 2);
-    grilleRecherche->addWidget(salleFiltreCapMax, 1, 3);
-    grilleRecherche->addWidget(creerLabelChamp("Disponibilité :", false, groupeRecherche), 2, 0);
-    grilleRecherche->addWidget(salleFiltreDispo, 2, 1);
-    grilleRecherche->addWidget(creerLabelChamp("Trier par :", false, groupeRecherche), 2, 2);
-    grilleRecherche->addWidget(salleTriCombo, 2, 3);
-    grilleRecherche->addWidget(salleTriDescCheck, 3, 0, 1, 2);
+    grilleAvanceSalle->addWidget(creerLabelChamp("Type :", false, panneauAvanceSalle), 0, 0);
+    grilleAvanceSalle->addWidget(salleFiltreType, 0, 1);
+    grilleAvanceSalle->addWidget(creerLabelChamp("Capacité entre :", false, panneauAvanceSalle), 0, 2);
+    grilleAvanceSalle->addWidget(salleFiltreCapMin, 0, 3);
+    grilleAvanceSalle->addWidget(new QLabel("et"), 0, 4);
+    grilleAvanceSalle->addWidget(salleFiltreCapMax, 0, 5);
+    grilleAvanceSalle->addWidget(creerLabelChamp("Disponibilité :", false, panneauAvanceSalle), 1, 0);
+    grilleAvanceSalle->addWidget(salleFiltreDispo, 1, 1);
 
-    QPushButton *btnEffacerFiltres = new QPushButton("Réinitialiser les filtres", groupeRecherche);
-    grilleRecherche->addWidget(btnEffacerFiltres, 3, 2, 1, 2);
+    QPushButton *btnEffacerFiltres = new QPushButton("Réinitialiser les filtres", panneauAvanceSalle);
+    grilleAvanceSalle->addWidget(btnEffacerFiltres, 2, 0, 1, 6);
+
+    panneauAvanceSalle->setVisible(false);
+    layoutRecherche->addWidget(panneauAvanceSalle);
 
     connect(salleFiltreNom, &QLineEdit::textChanged, this, &MainWindow::onSalleFiltrerChange);
     connect(salleFiltreType, &QComboBox::currentTextChanged, this, &MainWindow::onSalleFiltrerChange);
@@ -865,7 +909,14 @@ QWidget *MainWindow::creerOngletSalle()
     connect(salleFiltreCapMax, QOverload<int>::of(&QSpinBox::valueChanged), this, &MainWindow::onSalleFiltrerChange);
     connect(salleFiltreDispo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onSalleFiltrerChange);
     connect(salleTriCombo, &QComboBox::currentTextChanged, this, &MainWindow::onSalleFiltrerChange);
-    connect(salleTriDescCheck, &QCheckBox::toggled, this, &MainWindow::onSalleFiltrerChange);
+    connect(salleTriDescCheck, &QPushButton::toggled, this, [this](bool coche) {
+        salleTriDescCheck->setText(coche ? "↑" : "↓");
+        onSalleFiltrerChange();
+    });
+    connect(btnFiltresAvancesSalle, &QPushButton::toggled, this, [btnFiltresAvancesSalle, panneauAvanceSalle](bool coche) {
+        panneauAvanceSalle->setVisible(coche);
+        btnFiltresAvancesSalle->setText(coche ? "▴ Masquer les filtres avancés" : "Filtres avancés ▾");
+    });
     connect(btnEffacerFiltres, &QPushButton::clicked, this, &MainWindow::onSalleEffacerFiltres);
 
     layoutGauche->addWidget(groupeRecherche);

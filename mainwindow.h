@@ -16,6 +16,7 @@ class QTableView;
 class QLabel;
 class QCheckBox;
 class QPlainTextEdit;
+class QPushButton;
 
 class MainWindow : public QMainWindow
 {
@@ -60,8 +61,8 @@ private:
     QComboBox  *coursFiltreNiveau;
     QSpinBox   *coursFiltreDureeMin;
     QSpinBox   *coursFiltreDureeMax;
-    QComboBox  *coursTriCombo;
-    QCheckBox  *coursTriDescCheck;
+    QComboBox   *coursTriCombo;
+    QPushButton *coursTriDescCheck; // bouton bascule "ordre décroissant" (↑/↓)
 
     QTableView *coursTable;
     QLabel     *coursTotalLabel;
@@ -83,8 +84,8 @@ private:
     QSpinBox  *salleFiltreCapMin;
     QSpinBox  *salleFiltreCapMax;
     QComboBox *salleFiltreDispo;
-    QComboBox *salleTriCombo;
-    QCheckBox *salleTriDescCheck;
+    QComboBox   *salleTriCombo;
+    QPushButton *salleTriDescCheck; // bouton bascule "ordre décroissant" (↑/↓)
 
     QTableView *salleTable;
     QLabel     *salleTotalLabel;
